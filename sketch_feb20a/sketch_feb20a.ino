@@ -114,6 +114,12 @@ int count = 0;
 //   Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 // }
 
+void lcdTempStatus(String text) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(text);
+}
+
 void setup_mac() {
   Serial.print("OLD ESP32 MAC Address: ");
   Serial.println(WiFi.macAddress());
@@ -144,6 +150,7 @@ void setup_mac() {
 }
 
 void setup_wifilogin() {
+  lcdTempStatus("Logging in...");
   // WiFi.mode(WIFI_MODE_STA);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -152,6 +159,7 @@ void setup_wifilogin() {
 }
 
 void setup_pinghttp(bool secure) {
+  lcdTempStatus("Test WiFi...");
   if (!secure) {
     HTTPClient http;
     http.begin("http://google.com");
@@ -187,25 +195,32 @@ void setup()
   // Start the console
   Serial.begin(9600);
 
+  // Set up the LCD first
+  Wire.begin(PIN_SDA, PIN_SCL);
+  delay(500);
+  lcd.init();
+  lcd.backlight();
+
+  lcdTempStatus("Starting internet...");
+
   // Set up WiFi
   setup_wifilogin();
   setup_mac();
   setup_pinghttp(true);
 
-  // Something to do with the LCD
-  Wire.begin(PIN_SDA, PIN_SCL);
+  lcdTempStatus("Starting LED and IR...");
 
   // Set up the PWM for the RGB LED
   ledcAttach(PIN_RED, PWM_FREQ, PWM_RES);
   ledcAttach(PIN_GREEN, PWM_FREQ, PWM_RES);
   ledcAttach(PIN_BLUE, PWM_FREQ, PWM_RES);
 
-  // Initialize the displays
-  lcd.init();
-  lcd.backlight();
-  delay(1000);
   // start IR receiver
   irrecv.enableIRIn();
+  
+  lcdTempStatus("Done!");
+  delay(250);
+  lcd.clear();
 }
 
 void loop()
@@ -216,8 +231,6 @@ void loop()
   lcd.print(curStatus.title);
   lcd.setCursor(0, 1);
   lcd.print(curStatusCaption.getText());
-
-  setColor({ 255, 0, 0 });
 
   int btn = getRemoteButtonPressed();
   if (btn != -1) {

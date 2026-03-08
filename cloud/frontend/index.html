@@ -11,9 +11,37 @@
     <body>
         <main>
             <h1>LCD Doorbell Manager</h1>
-            <button>Available</button>
-            <button>Away</button>
-            <button>Busy</button>
+            <hr>
+            <h2>Status Setter</h2>
+            <label for="color">LED Color</label>
+            <input id="color" type="color">
+            <label for="title">Status Title</label>
+            <input id="title" type="text" placeholder="Office Hours">
+            <label for="caption">Status Subtitle</label>
+            <input id="caption" type="text" placeholder="Please knock before entering">
+            <button id="update-status">Update Status</button>
         </main>
     </body>
+    <script>
+        const updateStatusBtn = document.getElementById("update-status");
+        updateStatusBtn.addEventListener("click", e => {
+            const colorE = document.getElementById("color");
+            const titleE = document.getElementById("title");
+            const captionE = document.getElementById("caption");
+            const color = colorE.value;
+            const title = titleE.value;
+            const caption = captionE.value;
+            fetch("/set-status", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    color,
+                    title,
+                    caption
+                })
+            });
+        });
+    </script>
 </html>
