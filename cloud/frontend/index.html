@@ -10,16 +10,27 @@
 
     <body>
         <main>
-            <h1>LCD Doorbell Manager</h1>
+            <div class="titlebar">
+                <h1>LCD Doorbell Manager</h1>
+                <h2>By Nate Levison, Anthony Cohen, Erol Sonmez</h2>
+            </div>
             <hr>
-            <h2>Status Setter</h2>
-            <label for="color">LED Color</label>
-            <input id="color" type="color">
-            <label for="title">Status Title</label>
-            <input id="title" type="text" placeholder="Office Hours">
-            <label for="caption">Status Subtitle</label>
-            <input id="caption" type="text" placeholder="Please knock before entering">
-            <button id="update-status">Update Status</button>
+            <legend>Status Setter</legend>
+            <fieldset class="row">
+                <div class="col" style="flex: 1">
+                    <label for="color">LED Color</label>
+                    <label for="title">Status Title</label>
+                    <label for="caption">Status Subtitle</label>
+                </div>
+                <div class="col" style="flex: 2">
+                    <input id="color" type="color">
+                    <input id="title" type="text" placeholder="Office Hours">
+                    <input id="caption" type="text" placeholder="Please knock before entering">
+                </div>
+                <div class="col" style="flex: 3;">
+                    <button id="update-status" class="btn-main">Update Status</button>
+                </div>
+            </fieldset>
         </main>
     </body>
     <script>
@@ -44,4 +55,43 @@
             });
         });
     </script>
+    <style>
+        :root {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        }
+
+        main {
+            margin: 20px;
+            background: #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            border: 0.5px solid black;
+        }
+
+        fieldset {
+            padding: 20px;
+        }
+
+        .btn-main {
+            height: 100%;
+            font-size: 2em;
+        }
+
+        .titlebar {
+            text-align: center;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 3px;
+        }
+    </style>
 </html>
