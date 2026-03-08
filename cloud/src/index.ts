@@ -60,8 +60,8 @@ app.post("/set-status", (req: Request, res: Response) => {
     curCaption = caption;
     curTitle = title;
     curColorR = r;
-    curColorR = g;
-    curColorR = b;
+    curColorG = g;
+    curColorB = b;
     res.send({ success: true });
 });
 

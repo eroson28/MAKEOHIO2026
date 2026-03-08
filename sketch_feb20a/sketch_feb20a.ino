@@ -13,6 +13,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <esp_wifi.h>
+#include <ArduinoJson.h>
 
 /*-- WIFI --*/
 const char* ssid = "Registered4OSU";
@@ -114,6 +115,41 @@ int count = 0;
 //   Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 // }
 
+void setStatusFromWeb() {
+  WiFiClientSecure client;
+    client.setInsecure(); // Skip Certificate authority. for prototype ONLY!
+    
+    HTTPClient https;
+    https.begin(client, "https://makeohio.natelevison.com/status");
+    int httpCode = https.GET();
+
+    Serial.print("HTTPS Code ");
+    Serial.println(httpCode);
+    if (httpCode > 0) {
+      String payload = https.getString();
+      StaticJsonDocument<1024> doc;
+      deserializeJson(doc, payload);
+
+      int success = doc["success"];
+      const char* caption = doc["caption"];
+      const char* title = doc["title"];
+      int r = doc["r"];
+      int g = doc["g"];
+      int b = doc["b"];
+
+      Serial.println(success);
+      Serial.println(caption);
+      Serial.println(title);
+      Serial.println(r);
+      Serial.println(g);
+      Serial.println(b);
+
+      curStatus = { title, caption, { r, g, b }, -1 };
+      setStatus(curStatus);
+    }
+    https.end();
+}
+
 void lcdTempStatus(String text) {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -177,14 +213,14 @@ void setup_pinghttp(bool secure) {
     client.setInsecure(); // Skip Certificate authority. for prototype ONLY!
     
     HTTPClient https;
-    https.begin(client, "https://cam.natelevison.com/");
+    https.begin(client, "https://makeohio.natelevison.com/");
     int httpCode = https.GET();
 
     Serial.print("HTTPS Code ");
     Serial.println(httpCode);
     if (httpCode > 0) {
-      // String payload = https.getString();
-      // Discard the payload for now.
+      String payload = https.getString();
+      Serial.println(payload);
     }
     https.end();
   }
@@ -223,9 +259,11 @@ void setup()
   lcd.clear();
 }
 
+int ticksPassed = 0;
 void loop()
 {
   delay(100);
+
   curStatusCaption.tick();
   lcd.setCursor(0, 0);
   lcd.print(curStatus.title);
@@ -253,6 +291,10 @@ void loop()
       curStatusCaption.decSpeed();
     } else if (btn == BTN_SKIP_RIGHT) {
       curStatusCaption.incSpeed();
+    } else if (btn == BTN_CYCLE) {
+      lcdTempStatus("Getting status...");
+      setStatusFromWeb();
+      lcd.clear();
     }
   }
 }
@@ -264,6 +306,7 @@ void setColor(Color c) {
 }
 
 void setStatus(Status status) {
+  lcd.clear();
   curStatus = status;
   curStatusCaption.setText(curStatus.caption);
   curStatusColor = curStatus.color;
