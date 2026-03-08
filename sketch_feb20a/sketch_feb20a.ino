@@ -177,7 +177,7 @@ void setup_pinghttp(bool secure) {
     client.setInsecure(); // Skip Certificate authority. for prototype ONLY!
     
     HTTPClient https;
-    https.begin(client, "https://www.google.com/");
+    https.begin(client, "https://cam.natelevison.com/");
     int httpCode = https.GET();
 
     Serial.print("HTTPS Code ");
