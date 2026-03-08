@@ -1,8 +1,22 @@
+/*-- INCLUSIONS --*/
+#include <ScrollText.h>
+
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+
+// Infrared libraries
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
-#include <ScrollText.h>
+
+// Internet connectivity
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <esp_wifi.h>
+
+/*-- WIFI --*/
+const char* ssid = "Registered4OSU";
+const char* password = "ksX7x6cUcRfY46iU";
 
 /*-- CONSTANTS --*/
 
@@ -56,15 +70,29 @@ struct Status {
   String title;
   String caption;
   Color color;
+  int id;
 };
-const Status STATUS_AVAILABLE = { "Available", "Please knock before entering! - ", { 255, 255, 255 } };
-const Status STATUS_AWAY = { "Away", "Out of office right now - ", { 255, 255, 0 } };
-const Status STATUS_BUSY = { "Busy", "Please do not enter - ", { 255, 0, 0 } };
+const int STATUS_ID_AVAILABLE = 1;
+const int STATUS_ID_AWAY = 2;
+const int STATUS_ID_BUSY = 3;
+const Status STATUS_AVAILABLE = { "      Open", "Please knock before entering - ", { 0, 255, 0 }, STATUS_ID_AVAILABLE };
+const Status STATUS_AWAY = { "      Away", "Napping, will return soon - ", { 0, 0, 255 }, STATUS_ID_AWAY };
+const Status STATUS_BUSY = { "      Busy", "Please do not enter - ", { 255, 0, 0 }, STATUS_ID_BUSY };
+
+Status getStatusFromId(int id) {
+  if (id == STATUS_ID_AVAILABLE) {
+    return STATUS_AVAILABLE;
+  } else if (id == STATUS_ID_AWAY) {
+    return STATUS_AWAY;
+  } else if (id == STATUS_ID_BUSY) {
+    return STATUS_BUSY;
+  }
+}
 
 /*-- MAIN --*/
 
 // declare LCD 
-LiquidCrystal_I2C lcd(LCD_ADDR, LCD_ROWS, LCD_COLS);
+LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 IRrecv irrecv(PIN_IR_RECEIVE);
 decode_results results;
 
@@ -79,11 +107,90 @@ Color curStatusColor = curStatus.color;
 bool power = true;
 int count = 0;
 
+// void printMac() 
+// {
+//   uint8_t mac[6];
+//   esp_read_mac(mac, ESP_MAC_WIFI_STA);
+//   Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+// }
+
+void setup_mac() {
+  Serial.print("OLD ESP32 MAC Address: ");
+  Serial.println(WiFi.macAddress());
+
+  // We don't need to update anymore.
+  return;
+
+  uint8_t New_MAC_Address[] = {0x10, 0xAA, 0xBB, 0xCC, 0x33, 0xF5};
+  esp_err_t result = esp_wifi_set_mac(WIFI_IF_STA, New_MAC_Address);
+  
+  if (result == ESP_OK) {
+    Serial.println("ESP_OK");
+  } else if (result == ESP_ERR_WIFI_NOT_INIT) {
+    Serial.println("ESP_ERR_WIFI_NOT_INIT");
+  } else if (result == ESP_ERR_INVALID_ARG) {
+    Serial.println("ESP_ERR_INVALID_ARG");
+  } else if (result == ESP_ERR_WIFI_MAC) {
+    Serial.println("ESP_ERR_WIFI_MAC");
+  } else if (result == ESP_ERR_WIFI_MODE) {
+    Serial.println("ESP_ERR_WIFI_MODE");
+  } else {
+    Serial.print("Unknown error: ");
+    Serial.println(result);
+  }
+
+  Serial.print("NEW ESP32 MAC Address: ");
+  Serial.println(WiFi.macAddress());
+}
+
+void setup_wifilogin() {
+  // WiFi.mode(WIFI_MODE_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(250);
+  }
+}
+
+void setup_pinghttp(bool secure) {
+  if (!secure) {
+    HTTPClient http;
+    http.begin("http://google.com");
+    int httpCode = http.GET();
+
+    Serial.print("HTTP Code ");
+    Serial.println(httpCode);
+    if (httpCode > 0) {
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+    http.end();
+  } else {
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip Certificate authority. for prototype ONLY!
+    
+    HTTPClient https;
+    https.begin(client, "https://www.google.com/");
+    int httpCode = https.GET();
+
+    Serial.print("HTTPS Code ");
+    Serial.println(httpCode);
+    if (httpCode > 0) {
+      // String payload = https.getString();
+      // Discard the payload for now.
+    }
+    https.end();
+  }
+}
+
 void setup()
 {
   // Start the console
-  Serial.begin(115200);
-  Serial.println("Hello, World!");
+  Serial.begin(9600);
+
+  // Set up WiFi
+  setup_wifilogin();
+  setup_mac();
+  setup_pinghttp(true);
 
   // Something to do with the LCD
   Wire.begin(PIN_SDA, PIN_SCL);
@@ -94,13 +201,9 @@ void setup()
   ledcAttach(PIN_BLUE, PWM_FREQ, PWM_RES);
 
   // Initialize the displays
-  lcd.init();           
-  lcd.backlight();      
-  lcd.setCursor(0,0);
-  lcd.print("Loading");
-  setColor({ 255, 255, 255 });
+  lcd.init();
+  lcd.backlight();
   delay(1000);
-  setColor({ 0, 255, 0 });
   // start IR receiver
   irrecv.enableIRIn();
 }
@@ -108,23 +211,14 @@ void setup()
 void loop()
 {
   delay(100);
-  Serial.println("Looping.");
-
-  Serial.println("Ticking...");
   curStatusCaption.tick();
-  Serial.println("Finished tick.");
-
-  // lcd.clear();
-  Serial.println("Getting caption location...");
-  String s = curStatusCaption.getText();
-  Serial.println("Got caption location.");
-  
-  Serial.println("Writing text...");
   lcd.setCursor(0, 0);
-  lcd.print(s);
-  Serial.println("Wrote text.");
+  lcd.print(curStatus.title);
+  lcd.setCursor(0, 1);
+  lcd.print(curStatusCaption.getText());
 
-  Serial.println("Getting remote...");
+  setColor({ 255, 0, 0 });
+
   int btn = getRemoteButtonPressed();
   if (btn != -1) {
     if (btn == BTN_POW) {
@@ -142,9 +236,12 @@ void loop()
       setStatus(STATUS_AWAY);
     } else if (btn == BTN_3) {
       setStatus(STATUS_BUSY);
+    } else if (btn == BTN_SKIP_LEFT) {
+      curStatusCaption.decSpeed();
+    } else if (btn == BTN_SKIP_RIGHT) {
+      curStatusCaption.incSpeed();
     }
   }
-  Serial.println("Got remote.");
 }
 
 void setColor(Color c) {

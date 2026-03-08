@@ -4,7 +4,11 @@ import fs from "fs";
 const app: Application = express();
 const port = 3000; // The port your express server will be running on.
 
-let curStatus: number = 0;
+let curStatus = {
+    caption: "Hello",
+    title: "World",
+    color: "255 0 0",
+};
 let curCamera: string = "";
 
 // Enable URL-encoded form data parsing
@@ -20,7 +24,14 @@ app.use(express.static('frontend'));
  * The arduino requests what the current status is, whenever it deems it fit.
  */
 app.get("status", (req: Request, res: Response) => {
-    res.send({ success: true, data: { status: curStatus } });
+    res.json({
+        success: 1,
+        caption: "Internet and welcome to Game Theory",
+        title: "Hello",
+        r: 0,
+        g: 255,
+        b: 0
+    })
 });
 
 /**
@@ -35,10 +46,9 @@ app.get("camera-latest", (req: Request, res: Response) => {
 /**
  * The webapp can set the status.
  */
-app.post("set-status", (req: Request, res: Response) => {
-    const { status } = req.body;
-    curStatus = parseInt(status);
-    res.send({ success: true });
+app.get("set-status", (req: Request, res: Response) => {
+    const { caption, title, r, g, b } = req.body;
+    console.log(`Webapp wants to set status to ${caption} ${title} ${r} ${g} ${b}`);
 });
 
 /**

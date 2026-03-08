@@ -10,6 +10,8 @@ class ScrollText {
     void goToStart();
     String getText();
     void setText(String _text);
+    void incSpeed();
+    void decSpeed();
   private:
     String text;
     int pos;

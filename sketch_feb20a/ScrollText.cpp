@@ -8,7 +8,7 @@ String getScrolledText(String text, int pos) {
 
 ScrollText::ScrollText(String _text) {
   text = _text;
-  speed = 3;
+  speed = 1;
   pos = 0;
   ticks = 0;
   enableScrolling = true;
@@ -29,6 +29,14 @@ void ScrollText::tick() {
       textMemo = getScrolledText(text, pos);
     }
   }
+}
+
+void ScrollText::incSpeed() {
+  speed = max(0, speed - 1);
+}
+
+void ScrollText::decSpeed() {
+  speed = min(4, speed + 1);
 }
 
 void ScrollText::goToStart() {
